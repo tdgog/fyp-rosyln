@@ -1,17 +1,33 @@
-﻿using System;
-using Microsoft.CodeAnalysis;
+﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
+namespace RoslynExploration;
+
 class Program {
+    
     public static void Main() {
+//         const string code = @"
+// class Example {
+//     void Foo( {
+//         int x = 10
+//         if (x > 5)
+//             Console.WriteLine(""ok"")
+//         else
+//             Console.WriteLine(""bad"")
+//     }
+// }
+// ";
+
         const string code = @"
 class Example {
-    void Foo( {
-        int x = 10
-        if (x > 5)
-            Console.WriteLine(""ok"")
-        else
-            Console.WriteLine(""bad"")
+    void Foo() {
+        int x = 10;
+        if (x > 5) {
+            Console.WriteLine(""ok"");
+        }
+        else {
+            Console.WriteLine(""bad"");
+        }
     }
 }
 ";
@@ -22,6 +38,12 @@ class Example {
             Console.WriteLine($"{diagnostic.Id}: {diagnostic.GetMessage()} @ {diagnostic.Location.GetLineSpan()}");
 
         printTree(root);
+        
+        Console.WriteLine("\n\n\n");
+
+        CodeGenerator codeGenerator = new CodeGenerator();
+        string result = codeGenerator.generate(root);
+        Console.WriteLine(result);
     }
 
     private static void printTree(SyntaxNode node, int indent = 0) {
@@ -46,4 +68,5 @@ class Example {
             }
         }
     }
+    
 }
