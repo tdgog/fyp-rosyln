@@ -51,7 +51,7 @@ class Example {
                     string marker =
                         " <-- ERROR" +
                         string.Join("",
-                            diagnostics.Select(diagnostic => $" |\u001b[1m{diagnostic.Id} {diagnostic.GetMessage()}\u001b[0m\u001b[31m|"));
+                            diagnostics.Select(diagnostic => $" \u001b[1m{diagnostic.Id} {diagnostic.GetMessage()}\u001b[0m\u001b[31m"));
                     
                     Console.WriteLine($"\u001b[31m{pad}    {token.Kind()}{marker}\u001b[0m");
                 } else
