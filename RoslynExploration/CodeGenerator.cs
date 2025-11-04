@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.ComponentModel.Design.Serialization;
+using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -12,15 +13,32 @@ public class CodeGenerator {
     private readonly StringBuilder stringBuilder = new StringBuilder();
     private int currentIndentation = 0;
     private bool atLineStart = true;
+    private SyntaxNode compilationUnit;
+    private Dictionary<SyntaxToken, List<Diagnostic>> tokenDiagnostics = new Dictionary<SyntaxToken, List<Diagnostic>>();
 
     public string generate(SyntaxNode root) {
         stringBuilder.Clear();
         currentIndentation = 0;
         atLineStart = true;
+        compilationUnit = root;
+        collectDiagnostics(root);
         
         visitNode(root);
 
         return stringBuilder.ToString();
+    }
+
+    private void collectDiagnostics(SyntaxNode root) {
+        tokenDiagnostics.Clear();
+
+        foreach (Diagnostic diagnostic in root.GetDiagnostics()) {
+            SyntaxToken token = root.FindToken(diagnostic.Location.SourceSpan.Start);
+            if (!tokenDiagnostics.TryGetValue(token, out List<Diagnostic>? list)) {
+                list = [];
+                tokenDiagnostics[token] = list;
+            }
+            list.Add(diagnostic);
+        }
     }
 
     private void trailingNewLine() {
@@ -36,6 +54,20 @@ public class CodeGenerator {
             stringBuilder.Append(indentString);
         atLineStart = false;
     }
+    
+    private void appendTokenWithDiagnostic(SyntaxToken token) {
+        if (tokenDiagnostics.TryGetValue(token, out List<Diagnostic>? diagnostics)) {
+            stringBuilder
+                .Append(Program.RED)
+                .Append(token.Text)
+                .Append(" <-- ERROR: ")
+                .Append(string.Join(", ", diagnostics.Select(diagnostic => $"{diagnostic.Id}: {diagnostic.GetMessage()}")))
+                .Append(Program.RESET);
+        }
+        else {
+            stringBuilder.Append(token.Text);
+        }
+    }
 
     private void appendTokens(SyntaxTokenList tokens) {
         bool first = true;
@@ -43,7 +75,7 @@ public class CodeGenerator {
             if (!first) stringBuilder.Append(' ');
             first = false;
 
-            stringBuilder.Append(token.Text);
+            appendTokenWithDiagnostic(token);
         }
     }
 
@@ -121,7 +153,7 @@ public class CodeGenerator {
             }
             case SyntaxKind.ParameterList: {
                 ParameterListSyntax parameterList = (ParameterListSyntax) node;
-                stringBuilder.Append('(');
+                visitToken(parameterList.OpenParenToken);
 
                 bool first = true;
                 foreach (ParameterSyntax parameter in parameterList.Parameters) {
@@ -130,7 +162,7 @@ public class CodeGenerator {
                     visitNode(parameter);
                 }
 
-                stringBuilder.Append(')');
+                visitToken(parameterList.CloseParenToken);
                 break;
             }
             
@@ -303,7 +335,27 @@ public class CodeGenerator {
 
     void visitToken(SyntaxToken token) {
         if (token.IsMissing) {
-            stringBuilder.Append($"/*Missing {token.Kind()}*/");
+            SyntaxToken previous = compilationUnit.FindToken(token.SpanStart - 1);
+            SyntaxToken next = compilationUnit.FindToken(token.SpanStart + 1);
+            
+            List<Diagnostic>? diagnostics = null;
+            if (tokenDiagnostics.TryGetValue(previous, out var previousDiagnostics))
+                diagnostics = previousDiagnostics;
+            else if (tokenDiagnostics.TryGetValue(next, out var nextDiagnostics))
+                diagnostics = nextDiagnostics;
+            
+            if (diagnostics is { Count: > 0 }) {
+                stringBuilder
+                    .Append(Program.RED)
+                    .Append(token.Text)
+                    .Append(" <-- ERROR: ")
+                    .Append(string.Join(", ", diagnostics.Select(diagnostic => $"{diagnostic.Id} {diagnostic.GetMessage()}")))
+                    .Append(Program.RESET);
+            } else {
+                stringBuilder.Append(Program.RED);
+                stringBuilder.Append($" <-- ERROR: Missing {token.Kind()}");
+                stringBuilder.Append(Program.RESET);
+            }
             return;
         }
 
@@ -349,7 +401,7 @@ public class CodeGenerator {
                 break;
             
             case SyntaxKind.ElementAccessExpression:
-                stringBuilder.Append(token.Text);
+                appendTokenWithDiagnostic(token);
                 break;
             
             default:
@@ -359,7 +411,7 @@ public class CodeGenerator {
                         stringBuilder.Append(' ');
                 }
 
-                stringBuilder.Append(token.Text);
+                appendTokenWithDiagnostic(token);
                 atLineStart = false;
                 break;
         }

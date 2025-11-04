@@ -5,28 +5,19 @@ namespace RoslynExploration;
 
 class Program {
     
+    public const string RED = "\u001b[31m";
+    public const string BOLD = "\u001b[1m";
+    public const string RESET = "\u001b[0m";
+    
     public static void Main() {
-//         const string code = @"
-// class Example {
-//     void Foo( {
-//         int x = 10
-//         if (x > 5)
-//             Console.WriteLine(""ok"")
-//         else
-//             Console.WriteLine(""bad"")
-//     }
-// }
-// ";
-
         const string code = @"
 class Example {
-    void Foo() {
-        int x = 10;
+    void Foo( {
+        int x = 10
         if (x > 5) {
-            Console.WriteLine(""ok"");
-        }
-        else {
-            Console.WriteLine(""bad"");
+            Console.WriteLine(""ok"")
+        } else {
+            Console.WriteLine(""bad"")
         }
     }
 }
