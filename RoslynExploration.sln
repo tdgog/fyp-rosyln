@@ -1,6 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoslynExploration", "RoslynExploration\RoslynExploration.csproj", "{61D85E34-3B95-45E3-9723-70926C94196B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RoslynBlocklyTranspiler", "RoslynBlocklyTranspiler\RoslynBlocklyTranspiler.csproj", "{61D85E34-3B95-45E3-9723-70926C94196B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "API", "API\API.csproj", "{17AF5662-5B60-4B74-897F-3055B7F7C0D4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -12,5 +14,9 @@ Global
 		{61D85E34-3B95-45E3-9723-70926C94196B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61D85E34-3B95-45E3-9723-70926C94196B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61D85E34-3B95-45E3-9723-70926C94196B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17AF5662-5B60-4B74-897F-3055B7F7C0D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17AF5662-5B60-4B74-897F-3055B7F7C0D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17AF5662-5B60-4B74-897F-3055B7F7C0D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17AF5662-5B60-4B74-897F-3055B7F7C0D4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
