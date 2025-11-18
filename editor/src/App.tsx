@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import * as Blockly from "blockly";
 import "blockly/blocks";
+import {Editor} from "@monaco-editor/react";
 
 function addRandomBlock() {
     const id = `dynamic_block_${Math.floor(Math.random() * 10000)}`;
@@ -110,7 +111,21 @@ export default function App() {
     return (
         <div className={'h-screen w-screen flex'}>
             <div className={'h-full w-1/2 bg-red-500'}>
-
+                <Editor
+                    defaultLanguage="csharp"
+                    defaultValue={"using System;\n" +
+                        "\n" +
+                        "namespace HelloWorld\n" +
+                        "{\n" +
+                        "  class Program\n" +
+                        "  {\n" +
+                        "    static void Main(string[] args)\n" +
+                        "    {\n" +
+                        "      Console.WriteLine(\"Hello World!\");    \n" +
+                        "    }\n" +
+                        "  }\n" +
+                        "}\n"}
+                />
             </div>
             <div
                 ref={blocklyDiv}
