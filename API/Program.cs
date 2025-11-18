@@ -10,8 +10,7 @@ if (app.Environment.IsDevelopment()) {
 
 app.UseHttpsRedirection();
 
-app.MapGet("/test", () => "Hello, world!")
-    .WithName("Test");
+app.MapGet("/test", () => "Hello, world!");
 
 app.Run();
 
