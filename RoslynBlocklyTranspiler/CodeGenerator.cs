@@ -1,22 +1,27 @@
-﻿using System.ComponentModel.Design.Serialization;
-using System.Text;
+﻿using System.Text;
+using System.Text.Json;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using RoslynBlocklyTranspiler.Blocks;
 
 namespace RoslynBlocklyTranspiler;
 
 public class CodeGenerator {
     
-    public CodeGenerator() {}
+    public CodeGenerator() { }
 
     private readonly StringBuilder stringBuilder = new StringBuilder();
     private int currentIndentation = 0;
     private bool atLineStart = true;
     private SyntaxNode compilationUnit;
     private Dictionary<SyntaxToken, List<Diagnostic>> tokenDiagnostics = new Dictionary<SyntaxToken, List<Diagnostic>>();
-
-    public string generate(SyntaxNode root) {
+    private SemanticModel semanticModel;
+    
+    private Dictionary<string, Block> constructedFunctionBlocks { get; } = new Dictionary<string, Block>();
+    
+    public string generate(SyntaxNode root, SemanticModel semanticModel) {
+        this.semanticModel = semanticModel;
         stringBuilder.Clear();
         currentIndentation = 0;
         atLineStart = true;
@@ -264,6 +269,33 @@ public class CodeGenerator {
                 InvocationExpressionSyntax invocationExpression = (InvocationExpressionSyntax) node;
                 visitNode(invocationExpression.Expression);
                 visitNode(invocationExpression.ArgumentList);
+                
+                int actualArgCount = invocationExpression.ArgumentList?.Arguments.Count ?? 0;
+                
+
+                SymbolInfo symbolInfo = semanticModel.GetSymbolInfo(invocationExpression);
+                if (symbolInfo.Symbol is IMethodSymbol methodSymbol) {
+                    string fullyQualifiedName = $"{methodSymbol.ContainingType}.{methodSymbol.Name}";
+                    int parameterCount = methodSymbol.Parameters.Length;
+
+                    Console.WriteLine($"Method: {fullyQualifiedName}");
+                    Console.WriteLine($"Declared parameters: {parameterCount}");
+                    Console.WriteLine($"Actual arguments: {actualArgCount}");
+
+                    Block.Argument[] arguments = methodSymbol.Parameters
+                        .Select(x => new Block.Argument(type: "field_input", name: x.Name))
+                        .ToArray();
+
+                    constructedFunctionBlocks.Add(fullyQualifiedName, new Block(
+                        type: $"func_decl_{fullyQualifiedName}(%1);",
+                        message0: fullyQualifiedName,
+                        args0: arguments,
+                        colour: 30
+                    ));
+                    
+                    Console.WriteLine(JsonSerializer.Serialize(constructedFunctionBlocks[fullyQualifiedName]));
+                }
+                
                 break;
             }
 

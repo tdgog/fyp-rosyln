@@ -10,19 +10,28 @@ class Program {
     public const string RESET = "\e[0m";
     
     public static void Main() {
-        const string code = """
+//         const string code = """
+//                             class Example {
+//                                 void Foo( {
+//                                     int x = 10
+//                                     if (x > 5) {
+//                                         Console.WriteLine("ok")
+//                                     } else {
+//                                         Console.WriteLine("bad")
+//                                     }
+//                                 }
+//                             }
+//
+//                             """;
 
-                            class Example {
-                                void Foo( {
-                                    int x = 10
-                                    if (x > 5) {
-                                        Console.WriteLine("ok")
-                                    } else {
-                                        Console.WriteLine("bad")
-                                    }
+        const string code = """
+                            class Program
+                            {
+                                static void Main()
+                                {
+                                  System.Console.WriteLine("Hello World!");    
                                 }
                             }
-
                             """;
 
         SyntaxTree tree = CSharpSyntaxTree.ParseText(code);
@@ -34,8 +43,16 @@ class Program {
         
         Console.WriteLine("\n\n\n");
 
+        var compilation = CSharpCompilation.Create("Compilation")
+            .AddReferences(
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Console).Assembly.Location)
+            )
+            .AddSyntaxTrees(tree);
+        var semanticModel = compilation.GetSemanticModel(tree);
+
         CodeGenerator codeGenerator = new CodeGenerator();
-        string result = codeGenerator.generate(root);
+        string result = codeGenerator.generate(root, semanticModel);
         Console.WriteLine(result);
     }
 

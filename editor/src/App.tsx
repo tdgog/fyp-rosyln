@@ -27,16 +27,39 @@ export default function App() {
         if (!blocklyDiv.current) return;
 
         const variables = new Set<string>();
+        const functions = new Set<string>();
 
         // --- Define custom blocks ---
         Blockly.defineBlocksWithJsonArray([
             {
                 "type": "if_block",
-                "message0": "if ( %1 ) {",
+                "message0": "if (%1) \n{",
                 "args0": [
                     {
                         "type": "input_value",
                         "name": "COND",
+                    }
+                ],
+                "message1": "%1",
+                "args1": [
+                    {
+                        "type": "input_statement",
+                        "name": "BODY"
+                    }
+                ],
+                "message2": "}",
+                "colour": 210,
+                "previousStatement": null,
+                "nextStatement": null,
+                "inputsInline": true
+            },
+            {
+                "type": "class_block",
+                "message0": "class %1 \n{",
+                "args0": [
+                    {
+                        "type": "field_input",
+                        "name": "IDENT",
                     }
                 ],
                 "message1": "%1",
@@ -67,7 +90,24 @@ export default function App() {
                 ],
                 output: null,
                 colour: 230
-            }
+            },
+            {
+                type: "func_reference",
+                message0: "%1()",
+                args0: [
+                    {
+                        type: "field_dropdown",
+                        name: "VAR",
+                        options: () => {
+                            const options = Array.from(functions).map((v) => [v, v]);
+                            return options.length > 0 ? options : [["", ""]]
+                        }
+                    }
+                ],
+                output: null,
+                colour: 230
+            },
+            {"type":"func_decl_System.Console.WriteLine","message0":"System.Console.WriteLine(%1);","args0":[{"type":"field_input","name":"value","text":null}],"colour":30,"previousStatement":null,"nextStatement":null,"inputsInline":true}
         ]);
 
         // --- Create workspace ---
@@ -81,6 +121,14 @@ export default function App() {
                         {
                             "kind": "block",
                             "type": "if_block"
+                        },
+                        {
+                            "kind": "block",
+                            "type": "class_block"
+                        },
+                        {
+                            "kind": "block",
+                            "type": "func_decl_System.Console.WriteLine"
                         }
                     ]
                 },
@@ -96,6 +144,21 @@ export default function App() {
                             "kind": "button",
                             "text": "Add Variable",
                             "callbackKey": "addVariable"
+                        }
+                    ]
+                },
+                {
+                    "kind": "category",
+                    "name": "Functions",
+                    "contents": [
+                        {
+                            "kind": "block",
+                            "type": "func_reference"
+                        },
+                        {
+                            "kind": "button",
+                            "text": "Add Function",
+                            "callbackKey": "addFunction"
                         }
                     ]
                 },
@@ -167,6 +230,59 @@ export default function App() {
             workspace.updateToolbox(initialToolbox);
         });
 
+        workspace.registerButtonCallback("addFunction", () => {
+            const functionName = prompt("Enter function name:");
+
+            if (!functionName) return;
+
+            const blockType = `func_decl_${functionName}`;
+            functions.add(functionName)
+
+            Blockly.defineBlocksWithJsonArray([
+                {
+                    type: blockType,
+                    message0: "%1 %2(%3) \n{\n%4\n}",
+                    args0: [
+                        {
+                            type: "field_input",
+                            name: "MODIFIERS",
+                        },
+                        {
+                            type: "field_input",
+                            name: "FUNC_NAME",
+                            text: functionName
+                        },
+                        {
+                            type: "field_input",
+                            name: "PARAMS",
+                            text: ""
+                        },
+                        {
+                            type: "input_statement",
+                            name: "BODY"
+                        }
+                    ],
+                    colour: 230,
+                    previousStatement: null,
+                    nextStatement: null,
+                    inputsInline: true
+                },
+            ]);
+
+            const variableCategory = initialToolbox.contents.find(
+                (category) => category.kind === "category" && category.name === "Functions"
+            );
+
+            if (variableCategory && "contents" in variableCategory) {
+                variableCategory.contents.push({
+                    kind: "block",
+                    type: blockType
+                });
+            }
+
+            workspace.updateToolbox(initialToolbox);
+        });
+
         return () => workspace.dispose();
     }, []);
 
@@ -175,17 +291,12 @@ export default function App() {
             <div className={'h-full w-1/2 bg-red-500'}>
                 <Editor
                     defaultLanguage="csharp"
-                    defaultValue={"using System;\n" +
-                        "\n" +
-                        "namespace HelloWorld\n" +
+                    defaultValue={"class Program\n" +
                         "{\n" +
-                        "  class Program\n" +
-                        "  {\n" +
-                        "    static void Main(string[] args)\n" +
+                        "    static void Main()\n" +
                         "    {\n" +
                         "      Console.WriteLine(\"Hello World!\");    \n" +
                         "    }\n" +
-                        "  }\n" +
                         "}\n"}
                 />
             </div>
