@@ -26,38 +26,17 @@ export default function App() {
     useEffect(() => {
         if (!blocklyDiv.current) return;
 
+        const variables = new Set<string>();
+
         // --- Define custom blocks ---
         Blockly.defineBlocksWithJsonArray([
-            {
-                "type": "cs_var_decl",
-                "message0": "%1 %2 = %3;",
-                "args0": [
-                    {
-                        "type": "input_value",
-                        "name": "TYPE"
-                    },
-                    {
-                        "type": "field_variable",
-                        "name": "IDENT",
-                        "variable": "variable_name"
-                    },
-                    {
-                        "type": "input_value",
-                        "name": "VALUE"
-                    },
-                ],
-                "previousStatement": null,
-                "nextStatement": null,
-                "colour": 160,
-            },
             {
                 "type": "if_block",
                 "message0": "if ( %1 ) {",
                 "args0": [
                     {
-                        "type": "field_input",
+                        "type": "input_value",
                         "name": "COND",
-                        "text": "true"
                     }
                 ],
                 "message1": "%1",
@@ -72,27 +51,61 @@ export default function App() {
                 "previousStatement": null,
                 "nextStatement": null,
                 "inputsInline": true
+            },
+            {
+                type: "var_reference",
+                message0: "%1",
+                args0: [
+                    {
+                        type: "field_dropdown",
+                        name: "VAR",
+                        options: () => {
+                            const options = Array.from(variables).map((v) => [v, v]);
+                            return options.length > 0 ? options : [["", ""]]
+                        }
+                    }
+                ],
+                output: null,
+                colour: 230
             }
         ]);
 
         // --- Create workspace ---
         const initialToolbox = {
-            "kind": "flyoutToolbox",
+            "kind": "categoryToolbox",
             "contents": [
                 {
-                    "kind": "block",
-                    "type": "if_block"
+                    "kind": "category",
+                    "name": "Statements",
+                    "contents": [
+                        {
+                            "kind": "block",
+                            "type": "if_block"
+                        }
+                    ]
                 },
                 {
-                    "kind": "block",
-                    "type": "cs_var_decl"
-                }
+                    "kind": "category",
+                    "name": "Variables",
+                    "contents": [
+                        {
+                            "kind": "block",
+                            "type": "var_reference"
+                        },
+                        {
+                            "kind": "button",
+                            "text": "Add Variable",
+                            "callbackKey": "addVariable"
+                        }
+                    ]
+                },
             ]
         };
         const workspace = Blockly.inject(blocklyDiv.current, {
             toolbox: initialToolbox
         });
         workspaceRef.current = workspace;
+        workspace.getFlyout().autoClose = false
 
         const onKey = (e: KeyboardEvent) => {
             if (e.key.toLowerCase() === "a") {
@@ -104,6 +117,55 @@ export default function App() {
             }
         };
         window.addEventListener("keydown", onKey);
+
+        workspace.registerButtonCallback("addVariable", () => {
+            const variableType = prompt("Enter variable type (e.g., int, string):");
+            const variableName = prompt("Enter variable name:");
+
+            if (!variableType || !variableName) return;
+
+            const blockType = `var_decl_${variableName}`;
+            variables.add(variableName)
+
+            Blockly.defineBlocksWithJsonArray([
+                {
+                    type: blockType,
+                    message0: "%1 %2 = %3;",
+                    args0: [
+                        {
+                            type: "field_label_serializable",
+                            name: "TYPE",
+                            text: variableType
+                        },
+                        {
+                            type: "field_label_serializable",
+                            name: "IDENT",
+                            text: variableName
+                        },
+                        {
+                            type: "input_value",
+                            name: "VALUE"
+                        }
+                    ],
+                    previousStatement: null,
+                    nextStatement: null,
+                    colour: 160
+                }
+            ]);
+
+            const variableCategory = initialToolbox.contents.find(
+                (category) => category.kind === "category" && category.name === "Variables"
+            );
+
+            if (variableCategory && "contents" in variableCategory) {
+                variableCategory.contents.push({
+                    kind: "block",
+                    type: blockType
+                });
+            }
+
+            workspace.updateToolbox(initialToolbox);
+        });
 
         return () => workspace.dispose();
     }, []);
