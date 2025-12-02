@@ -1,36 +1,52 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as Blockly from "blockly";
 import "blockly/blocks";
-import {Editor} from "@monaco-editor/react";
-
-function addRandomBlock() {
-    const id = `dynamic_block_${Math.floor(Math.random() * 10000)}`;
-
-    Blockly.defineBlocksWithJsonArray([
-        {
-            type: id,
-            message0: `${id}`,
-            previousStatement: null,
-            nextStatement: null,
-            colour: 300,
-        }
-    ]);
-
-    return id;
-}
+import { Editor } from "@monaco-editor/react";
 
 export default function App() {
-    const blocklyDiv = useRef<HTMLDivElement>(null);
+    const blocklyDiv = useRef<HTMLDivElement | null>(null);
     const workspaceRef = useRef<Blockly.WorkspaceSvg | null>(null);
 
+    // Keep the *base* toolbox JSON in a ref so we can clone it later
+    const baseToolboxRef = useRef<any>({
+        kind: "categoryToolbox",
+        contents: [
+            {
+                kind: "category",
+                name: "Statements",
+                contents: [
+                    { kind: "block", type: "if_block" },
+                    { kind: "block", type: "class_block" },
+                ],
+            },
+            {
+                kind: "category",
+                name: "Variables",
+                contents: [
+                    // { kind: "block", type: "var_reference" },
+                    { kind: "button", text: "Add Variable", callbackKey: "addVariable" },
+                ],
+            },
+            {
+                kind: "category",
+                name: "Functions",
+                contents: [
+                    // { kind: "block", type: "func_reference" },
+                    { kind: "block", type: "method_block" },
+                ],
+            },
+        ],
+    });
+
+    const [blocklyWorkspaceState, setblocklyWorkspaceState] = useState<any>(null);
+    const editorRef = useRef<any>(null);
+
+    // --- Inject workspace once on mount ---
     useEffect(() => {
         if (!blocklyDiv.current) return;
-
-        const variables = new Set<string>();
-        const functions = new Set<string>();
-
-        // --- Define custom blocks ---
+        // define static blocks (unchanged)
         Blockly.defineBlocksWithJsonArray([
+            /* your static blocks: if_block, class_block, method_block, var_reference, func_reference ... */
             {
                 "type": "if_block",
                 "message0": "if (%1) \n{",
@@ -76,235 +92,183 @@ export default function App() {
                 "inputsInline": true
             },
             {
-                type: "var_reference",
-                message0: "%1",
+                type: "method_block",
+                message0: "%1 %2(%3) \n{\n%4\n}",
                 args0: [
                     {
-                        type: "field_dropdown",
-                        name: "VAR",
-                        options: () => {
-                            const options = Array.from(variables).map((v) => [v, v]);
-                            return options.length > 0 ? options : [["", ""]]
-                        }
-                    }
-                ],
-                output: null,
-                colour: 230
-            },
-            {
-                type: "func_reference",
-                message0: "%1()",
-                args0: [
+                        type: "field_input",
+                        name: "MODIFIERS",
+                    },
                     {
-                        type: "field_dropdown",
-                        name: "VAR",
-                        options: () => {
-                            const options = Array.from(functions).map((v) => [v, v]);
-                            return options.length > 0 ? options : [["", ""]]
-                        }
+                        type: "field_input",
+                        name: "IDENT",
+                    },
+                    {
+                        type: "field_input",
+                        name: "PARAMS",
+                        text: ""
+                    },
+                    {
+                        type: "input_statement",
+                        name: "BODY"
                     }
                 ],
-                output: null,
-                colour: 230
+                colour: 230,
+                previousStatement: null,
+                nextStatement: null,
+                inputsInline: true
             },
-            {"type":"func_decl_System.Console.WriteLine","message0":"System.Console.WriteLine(%1);","args0":[{"type":"field_input","name":"value","text":null}],"colour":30,"previousStatement":null,"nextStatement":null,"inputsInline":true}
+            // {
+            //     type: "var_reference",
+            //     message0: "%1",
+            //     args0: [
+            //         {
+            //             type: "field_dropdown",
+            //             name: "VAR",
+            //             options: () => {
+            //                 return [["a"], ["a"]]
+            //                 // const options = Array.from(variables).map((v) => [v, v]);
+            //                 // return options.length > 0 ? options : [["", ""]]
+            //             }
+            //         }
+            //     ],
+            //     output: null,
+            //     colour: 230
+            // },
+            // {
+            //     type: "func_reference",
+            //     message0: "%1()",
+            //     args0: [
+            //         {
+            //             type: "field_dropdown",
+            //             name: "VAR",
+            //             options: () => {
+            //                 return [["a"], ["a"]]
+            //                 // const options = Array.from(functions).map((v) => [v, v]);
+            //                 // return options.length > 0 ? options : [["", ""]]
+            //             }
+            //         }
+            //     ],
+            //     output: null,
+            //     colour: 230
+            // },
         ]);
 
-        // --- Create workspace ---
-        const initialToolbox = {
-            "kind": "categoryToolbox",
-            "contents": [
-                {
-                    "kind": "category",
-                    "name": "Statements",
-                    "contents": [
-                        {
-                            "kind": "block",
-                            "type": "if_block"
-                        },
-                        {
-                            "kind": "block",
-                            "type": "class_block"
-                        },
-                        {
-                            "kind": "block",
-                            "type": "func_decl_System.Console.WriteLine"
-                        }
-                    ]
-                },
-                {
-                    "kind": "category",
-                    "name": "Variables",
-                    "contents": [
-                        {
-                            "kind": "block",
-                            "type": "var_reference"
-                        },
-                        {
-                            "kind": "button",
-                            "text": "Add Variable",
-                            "callbackKey": "addVariable"
-                        }
-                    ]
-                },
-                {
-                    "kind": "category",
-                    "name": "Functions",
-                    "contents": [
-                        {
-                            "kind": "block",
-                            "type": "func_reference"
-                        },
-                        {
-                            "kind": "button",
-                            "text": "Add Function",
-                            "callbackKey": "addFunction"
-                        }
-                    ]
-                },
-            ]
-        };
         const workspace = Blockly.inject(blocklyDiv.current, {
-            toolbox: initialToolbox
+            toolbox: JSON.parse(JSON.stringify(baseToolboxRef.current)),
         });
+
         workspaceRef.current = workspace;
-        workspace.getFlyout().autoClose = false
+        workspace.getFlyout().autoClose = false;
 
-        const onKey = (e: KeyboardEvent) => {
-            if (e.key.toLowerCase() === "a") {
-                initialToolbox.contents.push({
-                    kind: "block",
-                    type: addRandomBlock()
-                });
-                workspace.updateToolbox(initialToolbox);
-            }
-        };
-        window.addEventListener("keydown", onKey);
-
+        // register button callback (works on the stable workspace)
         workspace.registerButtonCallback("addVariable", () => {
             const variableType = prompt("Enter variable type (e.g., int, string):");
             const variableName = prompt("Enter variable name:");
-
             if (!variableType || !variableName) return;
 
             const blockType = `var_decl_${variableName}`;
-            variables.add(variableName)
-
             Blockly.defineBlocksWithJsonArray([
                 {
                     type: blockType,
                     message0: "%1 %2 = %3;",
                     args0: [
-                        {
-                            type: "field_label_serializable",
-                            name: "TYPE",
-                            text: variableType
-                        },
-                        {
-                            type: "field_label_serializable",
-                            name: "IDENT",
-                            text: variableName
-                        },
-                        {
-                            type: "input_value",
-                            name: "VALUE"
-                        }
+                        { type: "field_label_serializable", name: "TYPE", text: variableType },
+                        { type: "field_label_serializable", name: "IDENT", text: variableName },
+                        { type: "input_value", name: "VALUE" },
                     ],
                     previousStatement: null,
                     nextStatement: null,
-                    colour: 160
-                }
-            ]);
-
-            const variableCategory = initialToolbox.contents.find(
-                (category) => category.kind === "category" && category.name === "Variables"
-            );
-
-            if (variableCategory && "contents" in variableCategory) {
-                variableCategory.contents.push({
-                    kind: "block",
-                    type: blockType
-                });
-            }
-
-            workspace.updateToolbox(initialToolbox);
-        });
-
-        workspace.registerButtonCallback("addFunction", () => {
-            const functionName = prompt("Enter function name:");
-
-            if (!functionName) return;
-
-            const blockType = `func_decl_${functionName}`;
-            functions.add(functionName)
-
-            Blockly.defineBlocksWithJsonArray([
-                {
-                    type: blockType,
-                    message0: "%1 %2(%3) \n{\n%4\n}",
-                    args0: [
-                        {
-                            type: "field_input",
-                            name: "MODIFIERS",
-                        },
-                        {
-                            type: "field_input",
-                            name: "FUNC_NAME",
-                            text: functionName
-                        },
-                        {
-                            type: "field_input",
-                            name: "PARAMS",
-                            text: ""
-                        },
-                        {
-                            type: "input_statement",
-                            name: "BODY"
-                        }
-                    ],
-                    colour: 230,
-                    previousStatement: null,
-                    nextStatement: null,
-                    inputsInline: true
+                    colour: 160,
                 },
             ]);
 
-            const variableCategory = initialToolbox.contents.find(
-                (category) => category.kind === "category" && category.name === "Functions"
+            // clone toolbox, mutate clone, then update
+            const toolboxClone = JSON.parse(JSON.stringify(baseToolboxRef.current));
+            const variableCategory = toolboxClone.contents.find(
+                (c: any) => c.kind === "category" && c.name === "Variables"
             );
-
             if (variableCategory && "contents" in variableCategory) {
-                variableCategory.contents.push({
-                    kind: "block",
-                    type: blockType
-                });
+                variableCategory.contents.push({ kind: "block", type: blockType });
             }
-
-            workspace.updateToolbox(initialToolbox);
+            workspace.updateToolbox(toolboxClone);
         });
 
+        // cleanup on unmount
         return () => workspace.dispose();
-    }, []);
+    }, []); // empty deps -> run once
+
+    // --- When backend state (or transpile result) arrives, define dynamic blocks & update toolbox ---
+    useEffect(() => {
+        console.log(JSON.stringify(blocklyWorkspaceState))
+        const workspace = workspaceRef.current;
+        if (!workspace || !blocklyWorkspaceState) return;
+
+        // define all dynamic blocks first
+        for (const f of Object.values(blocklyWorkspaceState.functions || {})) {
+            // f must be a valid block JSON object
+            Blockly.defineBlocksWithJsonArray([f]);
+        }
+
+        // clone base toolbox, add dynamic block entries into the desired category
+        const toolboxClone = JSON.parse(JSON.stringify(baseToolboxRef.current));
+        const functionsCategory = toolboxClone.contents.find(
+            (c: any) => c.kind === "category" && c.name === "Functions"
+        );
+
+        if (functionsCategory && "contents" in functionsCategory) {
+            for (const f of Object.values(blocklyWorkspaceState.functions || {})) {
+                functionsCategory.contents.push({ kind: "block", type: f.type });
+            }
+        }
+
+        // CRUCIAL: pass a brand-new object so Blockly rebuilds the flyout
+        workspace.updateToolbox(toolboxClone);
+
+        // Blockly.Blocks = { ...Blockly.Blocks }
+        workspace.clear()
+
+        // Blockly.serialization.workspaces.load(blocklyWorkspaceState.blocks, workspace)
+
+        // optional: do not clear workspace unless you truly want to
+        // workspace.clear();
+    }, [blocklyWorkspaceState]);
 
     return (
-        <div className={'h-screen w-screen flex'}>
-            <div className={'h-full w-1/2 bg-red-500'}>
+        <div className={"h-screen w-screen flex"}>
+            <div
+                className={"absolute z-[99999] left-2/5 top-5 bg-blue-400 p-2 cursor-pointer"}
+                onClick={async () => {
+                    console.log(Blockly.serialization.workspaces.save(workspaceRef))
+
+                    const response = await fetch("http://localhost:5020/code-to-blocks", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ code: editorRef.current.getValue() }),
+                    });
+                    const data = await response.json();
+                    console.log(data)
+                    // setblocklyWorkspaceState(data);
+                    setblocklyWorkspaceState(`{"blocks":[{"type":"if_block","id":"block1","x":20,"y":20,"inputs":{"COND":{"block":{"type":"math_number","id":"cond1","fields":{"NUM":0}}},"BODY":{"blocks":[]}},"next":null,"previous":null,"collapsed":false,"disabled":false,"inline":true}]}`)
+                }}
+            >
+                Transpile
+            </div>
+
+            <div className={"h-full w-1/2 bg-red-500"}>
                 <Editor
+                    onMount={(editor) => (editorRef.current = editor)}
                     defaultLanguage="csharp"
-                    defaultValue={"class Program\n" +
-                        "{\n" +
-                        "    static void Main()\n" +
-                        "    {\n" +
-                        "      Console.WriteLine(\"Hello World!\");    \n" +
-                        "    }\n" +
-                        "}\n"}
+                    defaultValue={`class Program
+{
+    static void Main()
+    {
+      System.Console.WriteLine("Hello World!");    
+    }
+}`}
                 />
             </div>
-            <div
-                ref={blocklyDiv}
-                className={'h-full w-1/2'}
-                style={{ background: "#f4f4f4" }}
-            />
+            <div ref={blocklyDiv} className={"h-full w-1/2"} />
         </div>
     );
 }

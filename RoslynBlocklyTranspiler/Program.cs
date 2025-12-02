@@ -1,5 +1,7 @@
-﻿using Microsoft.CodeAnalysis;
+﻿using System.Text.Json;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using RoslynBlocklyTranspiler.Blocks;
 
 namespace RoslynBlocklyTranspiler;
 
@@ -10,19 +12,18 @@ class Program {
     public const string RESET = "\e[0m";
     
     public static void Main() {
-//         const string code = """
-//                             class Example {
-//                                 void Foo( {
-//                                     int x = 10
-//                                     if (x > 5) {
-//                                         Console.WriteLine("ok")
-//                                     } else {
-//                                         Console.WriteLine("bad")
-//                                     }
-//                                 }
-//                             }
-//
-//                             """;
+         // const string code = """
+         //                     class Example {
+         //                         void Main() {
+         //                             int x = 10;
+         //                             if (x > 5) {
+         //                                 System.Console.WriteLine("ok");
+         //                             } else {
+         //                                 System.Console.WriteLine("bad");
+         //                             }
+         //                         }
+         //                     }
+         //                     """;
 
         const string code = """
                             class Program
@@ -51,9 +52,9 @@ class Program {
             .AddSyntaxTrees(tree);
         var semanticModel = compilation.GetSemanticModel(tree);
 
-        CodeGenerator codeGenerator = new CodeGenerator();
-        string result = codeGenerator.generate(root, semanticModel);
-        Console.WriteLine(result);
+        var codeGenerator = new BlocklyCodeGenerator();
+        object result = codeGenerator.Generate(root, semanticModel);
+        Console.WriteLine(JsonSerializer.Serialize(result));
     }
 
     private static void printTree(SyntaxNode node, int indent = 0) {
